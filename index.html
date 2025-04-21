@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zorroq Live Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --dark: #2d3436;
+            --light: #f5f6fa;
+            --danger: #d63031;
+            --success: #00b894;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            color: var(--dark);
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        @media (min-width: 768px) {
+            .video-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .video-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+
+        .video-box h3 {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 10px;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: var(--dark);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5649c0;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b02525;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #00997d;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #dfe6e9;
+            color: #b2bec3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .waiting {
+            background: #ffeaa7;
+            color: #d35400;
+        }
+
+        .connected {
+            background: #55efc4;
+            color: #006266;
+        }
+
+        .user-count {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--dark);
+            opacity: 0.7;
+        }
+
+        /* Loading animation */
+        .loader {
+            display: none;
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--secondary);
+            border-bottom-color: var(--primary);
+            border-radius: 50%;
+            animation: rotation 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="logo">Zorroq Live</div>
+        <div class="tagline">Connect with random people instantly</div>
+    </header>
+
+    <div class="main-content">
+        <div class="video-container">
+            <div class="video-box">
+                <video id="localVideo" autoplay muted></video>
+                <h3>You</h3>
+            </div>
+            <div class="video-box">
+                <video id="remoteVideo" autoplay></video>
+                <h3>Stranger</h3>
+            </div>
+        </div>
+
+        <div class="loader" id="loader"></div>
+
+        <div class="status" id="status">Disconnected</div>
+
+        <div class="controls">
+            <button class="btn-primary" id="startButton">
+                <i>🎥</i> Start Camera
+            </button>
+            <button class="btn-success" id="connectButton" disabled>
+                <i>🔍</i> Find Stranger
+            </button>
+            <button class="btn-danger" id="hangupButton" disabled>
+                <i>✋</i> Disconnect
+            </button>
+        </div>
+
+        <div class="user-count" id="userCount">0 people online</div>
+    </div>
+</div>
+
+<script>
+    // DOM Elements
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const startButton = document.getElementById('startButton');
+    const connectButton = document.getElementById('connectButton');
+    const hangupButton = document.getElementById('hangupButton');
+    const statusDiv = document.getElementById('status');
+    const userCountDiv = document.getElementById('userCount');
+    const loader = document.getElementById('loader');
+
+    // WebRTC variables
+    let localStream;
+    let peerConnection;
+    let socket;
+    let roomId = null;
+
+    // Simulated online users count
+    let onlineUsers = Math.floor(Math.random() * 100) + 50;
+    userCountDiv.textContent = `${onlineUsers} people online`;
+
+    // Update user count randomly (simulation)
+    setInterval(() => {
+        onlineUsers += Math.floor(Math.random() * 5) - 2;
+        if (onlineUsers < 10) onlineUsers = 10;
+        userCountDiv.textContent = `${onlineUsers} people online`;
+    }, 5000);
+
+    // Start camera button
+    startButton.onclick = async () => {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                },
+                audio: true
+            });
+
+            localVideo.srcObject = localStream;
+            startButton.disabled = true;
+            connectButton.disabled = false;
+            statusDiv.textContent = "Camera ready - click Find Stranger";
+            statusDiv.className = "status waiting";
+
+            // In a real app, you would connect to signaling server here
+        } catch (err) {
+            console.error('Error accessing media devices:', err);
+            statusDiv.textContent = "Error accessing camera/microphone";
+            statusDiv.className = "status error";
+        }
+    };
+
+    // Connect to random stranger button
+    connectButton.onclick = () => {
+        connectButton.disabled = true;
+        loader.style.display = 'block';
+        statusDiv.textContent = "Looking for a stranger...";
+
+        // Simulate connection delay
+        setTimeout(() => {
+            // In a real app, this would use WebRTC to connect
+            // For demo, we'll just simulate a connection
+            loader.style.display = 'none';
+
+            // 80% chance of successful connection for demo
+            if (Math.random() > 0.2) {
+                statusDiv.textContent = "Connected to a stranger!";
+                statusDiv.className = "status connected";
+                hangupButton.disabled = false;
+
+                // Simulate remote video (in real app this would be actual stream)
+                remoteVideo.srcObject = localStream.clone();
+            } else {
+                statusDiv.textContent = "Failed to find stranger. Try again.";
+                statusDiv.className = "status waiting";
+                connectButton.disabled = false;
+            }
+        }, 2000 + Math.random() * 3000);
+    };
+
+    // Hang up button
+    hangupButton.onclick = () => {
+        if (remoteVideo.srcObject) {
+            remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+            remoteVideo.srcObject = null;
+        }
+
+        hangupButton.disabled = true;
+        connectButton.disabled = false;
+        statusDiv.textContent = "Disconnected. Click Find Stranger to connect again.";
+        statusDiv.className = "status waiting";
+    };
+
+    // Responsive adjustments
+    function handleResize() {
+        // You could add specific mobile adjustments here if needed
+    }
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+</script>
+</body>
+</html>
